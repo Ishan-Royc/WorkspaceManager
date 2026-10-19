@@ -2,63 +2,82 @@ import { useEffect, useRef, useState } from 'react';
 import {useDropzone} from "react-dropzone";
 import './FilesBar.css';
 
-function FilesBar({title, setFile}: {title: string, setFile: (file: string) => void}) {
-    const [files, setFiles] = useState<{ name: string; url: string }[]>([]);
-    const fileUrls = useRef<string[]>([]);
+export type DroppedPdf = {
+  name: string;
+  path: string;
+  file: File;
+};
 
-    useEffect(() => () => {
-        fileUrls.current.forEach(URL.revokeObjectURL);
-    }, []);
+type FilesBarProps = {
+  title: string;
+  files: DroppedPdf[];
+  onFilesAdded: (files: DroppedPdf[]) => void;
+  onSelect: (file: DroppedPdf) => void;
+  onRemove: (file: DroppedPdf, index: number) => void;
+  onError: (message: string) => void;
+};
 
-    const {getRootProps, getInputProps} = useDropzone({
-        noClick: true,
-        onDrop: acceptedFiles => {
-            const droppedFiles = acceptedFiles.map(file => {
-                const url = URL.createObjectURL(file);
-                fileUrls.current.push(url);
-                return {name: file.name, url};
-            });
-            setFiles(prevFiles => [...prevFiles, ...droppedFiles]);
+function FilesBar({
+  title,
+  files,
+  onFilesAdded,
+  onSelect,
+  onRemove,
+  onError,
+}: FilesBarProps) {
+  const { getRootProps, getInputProps } = useDropzone({
+    noClick: true,
+    onDrop: acceptedFiles => {
+      const added: DroppedPdf[] = [];
+
+      for (const file of acceptedFiles) {
+        const path = (file as File & { path?: string }).path;
+        if (!path) {
+          onError(`Couldn't get the full path for ${file.name}.`);
+          continue;
         }
-    });
 
-    return (
-    <>
-        <div id="files-bar" className="toplevel">
-            <div id="title-bar">
-                <div id="title-bar-text">
-                    <span>{title}</span>
-                </div>
-            </div>
-            <div id="files-bar-content" {...getRootProps({className: 'dropzone'})}>
-                <input {...getInputProps()} />
-                <ul>
-                    {files.map(file => (
-                        <li key={file.url}>
-                            <button
-                                type="button"
-                                onClick={event => {
-                                    event.stopPropagation();
-                                    setFile(file.url);
-                                }}
-                            >
-                                {file.name}
-                            </button>
-                            <button className="x" onClick={event => {
-                                event.stopPropagation();
-                                const newFiles = files.filter(f => f.url !== file.url);
-                                setFiles(newFiles);
-                                setFile(newFiles.length > 0 ? newFiles[0].url : '');
-                            }}>
-                                X
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            </div>
+        added.push({ name: file.name, path, file });
+      }
+
+      onFilesAdded(added);
+    },
+  });
+
+  return (
+    <div id="files-bar" className="toplevel">
+      <div id="title-bar">
+        <div id="title-bar-text">
+          <span>{title}</span>
         </div>
-    </>
-  )
+      </div>
+
+      <div id="files-bar-content" {...getRootProps({ className: 'dropzone' })}>
+        <input {...getInputProps()} />
+        <ul>
+          {files.map((file: DroppedPdf, index: number) => (
+            <li key={`${file.path}-${index}`}>
+              <button
+                className="file-name"
+                type="button"
+                onClick={() => onSelect(file)}
+              >
+                {file.name}
+              </button>
+              <button
+                className="file-remove"
+                type="button"
+                aria-label={`Remove ${file.name}`}
+                onClick={() => onRemove(file, index)}
+              >
+                X
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
 }
 
-export default FilesBar
+export default FilesBar;

@@ -31,9 +31,10 @@
     padding-bottom: 100vh;
 }
 
-#files-bar-content li button{
+#files-bar-content li .file-name{
     display: block;
-    max-width: 91.5%;
+    flex: 1;
+    min-width: 0;
     box-sizing: border-box;
     white-space: normal;
     text-align: left;
@@ -50,8 +51,8 @@
 button{
     background-color: #4d97ff;
     padding: 5px;
-    border: none;
     border-radius: 4px;
+    border: 1px solid #000;
 }
 
 button:hover{
